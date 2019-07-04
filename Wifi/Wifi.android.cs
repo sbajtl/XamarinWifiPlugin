@@ -2,9 +2,12 @@
 using Android.App;
 using Android.Content;
 using Android.Net.Wifi;
+using Android.OS;
+using Plugin.CurrentActivity;
+using Plugin.Permissions;
+using Plugin.Permissions.Abstractions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 [assembly: UsesPermission(Manifest.Permission.AccessWifiState)]
@@ -18,69 +21,151 @@ namespace Plugin.Wifi
     /// </summary>
     public class WifiPlugin : IWifi
     {
-        internal static Context AppContext;
-        private static WifiManager wifiManager;
-        private static WifiReceiver wifiReceiver;
-        private static IList<WifiInfo> wifiNetworks;
+        // internal static Context AppContext;
+        private WifiManager NetworkManager { get; set; }
+        private WifiReceiver NetworkReceiver { get; set; }
 
-        public static void Init(Context context)
+        public static void Init(Activity activity, Bundle savedInstanceState)
         {
-            AppContext = context;
+            CrossCurrentActivity.Current.Init(activity, savedInstanceState);
         }
 
+        /// <summary>
+        /// GetWifiList
+        /// </summary>
+        /// <returns></returns>
         public async Task<IList<WifiInfo>> GetWifiList()
         {
-            IList <WifiInfo> networks = new List<WifiInfo>();
+            IList<WifiInfo> networks = new List<WifiInfo>();
 
-            if (PermissionsHandler.NeedsPermissionRequest((Activity)AppContext))
+            try
             {
-               await PermissionsHandler.RequestPermissionsAsync((Activity)AppContext);
-               networks = GetNetworks();
+                PermissionStatus status = await CrossPermissions.Current.CheckPermissionStatusAsync<LocationPermission>();
+
+                if (status != PermissionStatus.Granted)
+                {
+                    bool shouldShow = await CrossPermissions.Current.ShouldShowRequestPermissionRationaleAsync(Permission.Location);
+
+                    if (shouldShow)
+                    {
+                        await WifiHelper.DisplayCustomDialog(CrossCurrentActivity.Current.Activity, "Permission needed", "You have to grant location permission to get wifi list!", "OK");
+                    }
+
+                    status = await CrossPermissions.Current.RequestPermissionAsync<LocationPermission>();
+                }
+
+                if (status == PermissionStatus.Granted)
+                {
+                    networks = await ScanAndGetNetworks();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                networks = GetNetworks();
+                // Something went wrong
+                System.Diagnostics.Debug.WriteLine($"Error when trying to get wifi list: {ex.Message}");
             }
 
-            return await Task.FromResult(networks);
-        }
-
-        private static IList<WifiInfo> GetNetworks()
-        {
-            IList<WifiInfo> networks;
-            if (wifiManager == null)
-            {
-                wifiManager = (WifiManager)AppContext.GetSystemService(Context.WifiService);
-            }
-
-            if (wifiReceiver == null)
-            {
-                wifiReceiver = new WifiReceiver();
-            }
-
-            IntentFilter intentFilter = new IntentFilter();
-            intentFilter.AddAction(WifiManager.ScanResultsAvailableAction);
-            AppContext.RegisterReceiver(wifiReceiver, intentFilter);
-            wifiManager.StartScan();
-            networks = wifiNetworks;
             return networks;
         }
 
+        /// <summary>
+        /// ScanAndGetNetworks
+        /// </summary>
+        /// <returns></returns>
+        private async Task<IList<WifiInfo>> ScanAndGetNetworks()
+        {
+            await ScanForNetworks();
+            return await NetworkReceiver.GetAvailableWifiNetworks();
+        }
+
+        /// <summary>
+        /// ScanForNetworks
+        /// </summary>
+        /// <returns></returns>
+        private async Task ScanForNetworks()
+        {
+            await Task.Run(() =>
+            {
+                if (NetworkManager == null)
+                {
+                    NetworkManager = (WifiManager)CrossCurrentActivity.Current.Activity.GetSystemService(Context.WifiService);
+                }
+                    
+                NetworkReceiver = new WifiReceiver(NetworkManager);
+                IntentFilter intentFilter = new IntentFilter();
+                intentFilter.AddAction(WifiManager.ScanResultsAvailableAction);
+                CrossCurrentActivity.Current.Activity.RegisterReceiver(NetworkReceiver, intentFilter);
+                NetworkManager.StartScan();
+            });
+    
+        }
+
+        /// <summary>
+        /// WifiReceiver
+        /// </summary>
         private class WifiReceiver : BroadcastReceiver
         {
+            public WifiReceiver(WifiManager networkManager)
+            {
+                WifiListCompletion = new TaskCompletionSource<IList<WifiInfo>>();
+                WifiManager = networkManager;
+            }
+
+            private WifiManager WifiManager { get; set; }
+
+            private IList<WifiInfo> WifiNetworks { get; set; }
+
+            private TaskCompletionSource<IList<WifiInfo>> WifiListCompletion { get; set; }
+
+            /// <summary>
+            /// OnReceive
+            /// </summary>
+            /// <param name="context"></param>
+            /// <param name="intent"></param>
             public override void OnReceive(Context context, Intent intent)
             {
-                IList<ScanResult> foundedNetworks = wifiManager.ScanResults;
+                IList<ScanResult> foundedNetworks = WifiManager.ScanResults;
 
-                wifiNetworks = new List<WifiInfo>();
+                WifiNetworks = new List<WifiInfo>();
 
-                foreach (ScanResult item in foundedNetworks)
+                foreach (ScanResult wifiResult in foundedNetworks)
                 {
-                    //wifiNetworks.Add(new WifiInfo
-                    //{
-                    //    //item.
-                    //});
+                    if (string.IsNullOrEmpty(wifiResult.Ssid))
+                    {
+                        continue;
+                    } // hidden network
+
+                    WifiInfo wifiInfo = WifiHelper.MakeWiFiInfo(wifiResult);
+
+                    if (!WifiNetworks.Contains(wifiInfo))
+                    {
+                        bool canAdd = true;
+                        foreach (WifiInfo wifi in WifiNetworks)
+                        {
+                            if (wifi.Identity == wifiResult.Bssid)
+                            {
+                                canAdd = false;
+                                break;
+                            }
+                        }
+
+                        if (canAdd)
+                        {
+                            WifiNetworks.Add(wifiInfo);
+                        }
+                    }
                 }
+
+                WifiListCompletion.TrySetResult(WifiNetworks);
+            }
+
+            /// <summary>
+            /// GetAvailableWifiNetworks
+            /// </summary>
+            /// <returns></returns>
+            public async Task<IList<WifiInfo>> GetAvailableWifiNetworks()
+            {
+                return await WifiListCompletion.Task;
             }
         }
     }

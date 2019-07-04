@@ -59,8 +59,6 @@
 
   <ItemGroup>
     <Compile Include="**\*.shared.cs" />
-    <Compile Include="**\*.shared.enums.cs" />
-    <Compile Include="**\*.shared.models.cs" />
   </ItemGroup>
 
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) ">
@@ -75,10 +73,11 @@
     </SDKReference>
     -->
   </ItemGroup>
-
+  
   <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid')) ">
     <Compile Include="**\*.android.cs" />
-    <Compile Include="**\*.android.permissions.cs" />
+    <PackageReference Include="Plugin.Permissions" Version="5.0.0-beta" />
+    <PackageReference Include="Plugin.CurrentActivity" Version="2.1.0.4" />
   </ItemGroup>
 
   <ItemGroup Condition=" $(TargetFramework.StartsWith('Xamarin.iOS')) ">

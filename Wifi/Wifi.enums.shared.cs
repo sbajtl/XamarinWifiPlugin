@@ -13,4 +13,13 @@ namespace Plugin.Wifi
         WPA2Enterprise,
         Other,
     }
+
+    public enum WorkStatus
+    {
+        Undefined,
+        Working,
+        Canceled,
+        Failed,
+        Finished,
+    }
 }

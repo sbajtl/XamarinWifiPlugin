@@ -6,10 +6,23 @@
 
     <StackLayout>
         <!-- Place new controls here -->
-        <Button x:Name="addButton" />
-        <ListView x:Name="wifiList">
-            
+        <Button Text="Refresh" Command="{Binding WifiListCommand}" />
+        <ListView ItemsSource="{Binding WifiList}" HasUnevenRows="True">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <ViewCell>
+                        <StackLayout Spacing="2" Margin="10, 5, 10, 5">
+                            <Label Text="{Binding Ssid}" />
+                            <Label Text="{Binding Identity}" />
+                            <Label Text="{Binding Security}" />
+                            <Label Text="{Binding Signal}" />
+                        </StackLayout>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
         </ListView>
+
+
     </StackLayout>
 
 </ContentPage>
