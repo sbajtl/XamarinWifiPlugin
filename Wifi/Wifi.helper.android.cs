@@ -1,15 +1,21 @@
 ﻿using Android.App;
 using Android.Content;
 using Android.Net.Wifi;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Plugin.Wifi
 {
     public static class WifiHelper
     {
+        /// <summary>
+        /// DisplayCustomDialog
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="dialogTitle"></param>
+        /// <param name="dialogMessage"></param>
+        /// <param name="dialogPositiveBtnLabel"></param>
+        /// <param name="dialogNegativeBtnLabel"></param>
+        /// <returns></returns>
         public static Task<string> DisplayCustomDialog(Context context, string dialogTitle, string dialogMessage, string dialogPositiveBtnLabel, string dialogNegativeBtnLabel = null)
         {
             var tcs = new TaskCompletionSource<string>();
@@ -35,11 +41,24 @@ namespace Plugin.Wifi
             return tcs.Task;
         }
 
+        /// <summary>
+        /// MakeWiFiInfo
+        /// </summary>
+        /// <param name="wiFi"></param>
+        /// <returns></returns>
         public static WifiInfo MakeWiFiInfo(ScanResult wiFi)
         {
             return MakeWiFiInfo(wiFi.Capabilities, wiFi.Level, wiFi.Bssid, wiFi.Ssid);
         }
 
+        /// <summary>
+        /// MakeWiFiInfo
+        /// </summary>
+        /// <param name="capabilities"></param>
+        /// <param name="signal"></param>
+        /// <param name="bssid"></param>
+        /// <param name="ssid"></param>
+        /// <returns></returns>
         public static WifiInfo MakeWiFiInfo(string capabilities, int signal, string bssid, string ssid)
         {
             WiFiSecurityTypes wiFiSecurity = WiFiSecurityTypes.Other;
@@ -95,7 +114,6 @@ namespace Plugin.Wifi
 
             return new WifiInfo
             {
-                // ID = wiFiNetworks.Count(),
                 Ssid = ssid,
                 Security = wiFiSecurity,
                 Identity = bssid,

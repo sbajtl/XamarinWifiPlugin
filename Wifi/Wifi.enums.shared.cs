@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Plugin.Wifi
+﻿namespace Plugin.Wifi
 {
     public enum WiFiSecurityTypes
     {

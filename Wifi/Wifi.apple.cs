@@ -1,7 +1,8 @@
-﻿using System;
+﻿using Foundation;
+using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
+using UIKit;
 
 namespace Plugin.Wifi
 {
@@ -12,7 +13,17 @@ namespace Plugin.Wifi
     {
         public Task<IList<WifiInfo>> GetWifiList()
         {
-            throw new NotImplementedException();
+            var WiFiURL = new NSUrl("prefs:root=WIFI");
+            if (UIApplication.SharedApplication.CanOpenUrl(WiFiURL))
+            {   //Pre iOS 10
+                UIApplication.SharedApplication.OpenUrl(WiFiURL);
+            }
+            else
+            {   //iOS 10
+                UIApplication.SharedApplication.OpenUrl(new NSUrl("App-Prefs:root=WIFI"));
+            }
+
+            return null;
         }
     }
 }

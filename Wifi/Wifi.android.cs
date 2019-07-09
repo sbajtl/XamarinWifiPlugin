@@ -21,7 +21,6 @@ namespace Plugin.Wifi
     /// </summary>
     public class WifiPlugin : IWifi
     {
-        // internal static Context AppContext;
         private WifiManager NetworkManager { get; set; }
         private WifiReceiver NetworkReceiver { get; set; }
 

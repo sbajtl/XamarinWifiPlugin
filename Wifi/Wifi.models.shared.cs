@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Plugin.Wifi
+﻿namespace Plugin.Wifi
 {
     public class WifiInfo
     {
         private int signal = -1;
-
-        // public int Id { get; set; }
 
         public string Identity { get; set; }
 
